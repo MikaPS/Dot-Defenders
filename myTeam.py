@@ -1,5 +1,7 @@
+from pacai.util import reflection
 from pacai.agents.capture.capture import CaptureAgent
 from pacai.core.directions import Directions
+# from pacai.student.myTeam import DummyAgent
 
 def createTeam(firstIndex, secondIndex, isRed,
         first = 'pacai.student.myTeam.DummyAgent',
@@ -61,34 +63,57 @@ class DummyAgent(CaptureAgent):
             # check if we're offense (agent is pacman) or defense (it's a ghost)
             if (myState.isPacman()):
                 self.team = 0
-
+            else:
+                self.team = 1
             # important stats for both states:
             myPos = successorState.getPosition()
             food_offense = self.getFood(gameState).asList()
             enemies = [gameState.getAgentState(i) for i in self.getOpponents(gameState)]
+            invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]            
+            teamPos = [gameState.getAgentPosition(i) for i in self.getTeam(gameState)]
+            # teammates shouldn't be near each other on the y value:
+            teamDistY = abs(teamPos[0][1] - teamPos[1][1])
+            nextTeamPos = [successor.getAgentPosition(i) for i in self.getTeam(successor)]
+            nextTeamDistY = abs(nextTeamPos[0][1] - nextTeamPos[1][1])
+            nextTeamDistX = abs(nextTeamPos[0][0] - nextTeamPos[1][0])
+            heightBoard = 30
+            if self.team == 0 and teamDistY <= nextTeamDistY and nextTeamDistY<heightBoard/10 and nextTeamDistX<5 and nextTeamDistX>=1:
+                score += 10
+
+            # be on offense if both enemies are ghosts
+            if (len(invaders) == 0):
+                self.team = 0
+            else:
+                self.team = 1
             # want to have more food on our side of the board
             food_defense = self.getFoodYouAreDefending(gameState).asList()
             score += 10 * len(food_defense)
             if len(food_defense) <= len(food_offense) + 5:
-                enemies = [gameState.getAgentState(i) for i in self.getOpponents(gameState)]
-                invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
                 score -= 1000 * (len(invaders))
-                # want to be close to invaders to eat them
-                if (len(invaders) > 0):
-                    if not myState.isScared():
-                        dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
+            # want to be close to invaders to eat them
+            if (len(invaders) > 0):
+                # be on offense if no invaders
+                if not myState.isScared():
+                    dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
+                    for i in self.getTeam(gameState):
+                        if i != self.index:
+                            teammatDists = [self.getMazeDistance(gameState.getAgentPosition(i), a.getPosition()) for a in invaders]
+                    # if closer to enemey than your teammate, get the invader
+                    if min(dists) < min(teammatDists):
+                        self.team = 1
                         # ate a pacman
                         if min(dists) == 0:
                             score += 5000
-                        elif min(dists) <= 3:
+                        elif min(dists) <= 4:
                             score += 3000
                         score += 100 / (min(dists) + 1)
+                else:
+                    self.team = 0
             # if in offensive state
             if self.team == 0:
-                # print("in offesnse!")
                 # we want to have less food to eat:
                 num_food = len(food_offense)
-                score -= (num_food * 5)
+                score -= (num_food * 2)
                 # find the closest food
                 food_dists = []
                 for food in food_offense:
@@ -107,22 +132,20 @@ class DummyAgent(CaptureAgent):
                     # SCARED GHOSTS
                     if ghost.isScared():
                         numScared += 1
-                        # eating a scared ghost is really good
+                        # eating a scared ghost is good
                         if ghost_dist == 0:
-                            score += 500
-                        if ghost_dist <= 1 and ghost.getScaredTimer() > 1:
                             score += 200
                         # making sure you can reach the ghost based on their timer
                         if ghost_dist < ghost.getScaredTimer():
-                            score += 10 / (ghost_dist + 1)
+                            score += 1 / (ghost_dist + 1)
                     # BRAVE GHOSTS
                     else:
                         # lose conditions again
                         if ghost_dist == 0:
-                            score -= 7000
+                            score -= 9000
                         # if brave ghost is really close, reduce score
                         if ghost_dist <= 1:
-                            score -= 5000
+                            score -= 7000
                 # want to have lots of scared ghosts
                 if numScared > 0:
                     score += 500
@@ -154,5 +177,5 @@ class DummyAgent(CaptureAgent):
             if score >= best_score:
                 best_score = score
                 best_action = action
-
+        
         return best_action  # random.choice(actions)
