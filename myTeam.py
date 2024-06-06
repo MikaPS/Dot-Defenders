@@ -42,13 +42,11 @@ class DummyDefenseAgent(CaptureAgent):
 
         # Your initialization code goes here, if you need any.
 
-   
-
     def chooseAction(self, gameState):
         actions = gameState.getLegalActions(self.index)
         best_action = None
         best_score = float("-inf")
-        x,y = gameState.getAgentPosition(self.index)
+        x, y = gameState.getAgentPosition(self.index)
 
         for action in actions:
             score = 0
@@ -58,6 +56,7 @@ class DummyDefenseAgent(CaptureAgent):
             nextX, nextY = int(x + dx), int(y + dy)
             walls = gameState.getWalls()
 
+            # Avoid walls
             if walls[nextX][nextY]:
                 score -= 99999
          
@@ -132,7 +131,6 @@ class DummyOffenseAgent(CaptureAgent):
 
     def chooseAction(self, gameState):
         actions = gameState.getLegalActions(self.index)
-        walls = gameState.getWalls()
         best_action = None
         best_score = float("-inf")
 
@@ -303,16 +301,9 @@ class DummyAgent(CaptureAgent):
                 # want to have less invaders
                 enemies = [gameState.getAgentState(i) for i in self.getOpponents(gameState)]
                 invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
-                previousObservation =  super().getPreviousObservation(gameState)
-                currentObservation = super().getCurrentObservation()
-
-                
                 score -= 1000 * (len(invaders))
                 # Handling when a defender gets stuck to an attacker at the edge
-                print("previous Observation: " , previousObservation.getAgentPosition())
-                print("previous Observation: ", currentObservation.getAgentPosition())
-                    
-
+            
                 # want to be close to invaders to eat them
                 if (len(invaders) > 0):
                     dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
