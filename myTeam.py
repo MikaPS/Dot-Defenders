@@ -55,7 +55,7 @@ class DummyDefenseAgent(CaptureAgent):
                 score -= 100
             rev = Directions.REVERSE[gameState.getAgentState(self.index).getDirection()]
             if action == rev:
-                score -= 2
+                score -= 10
 
             # Update the best action
             if score > best_score:
@@ -64,37 +64,106 @@ class DummyDefenseAgent(CaptureAgent):
 
         return best_action
 
-    def defense(self, gameState, action, score):
+    def offense(self, gameState, action, score):
         # important states
         successor = gameState.generateSuccessor(self.index, action)
         successorState = successor.getAgentState(self.index)
         
         myPos = successorState.getPosition()
+        food_offense = self.getFood(gameState).asList()
+
+        enemies = [gameState.getAgentState(i) for i in self.getOpponents(gameState)]
+        ghosts = [a for a in enemies if not a.isPacman() and a.getPosition() is not None]
+        
+        # want to have less food on the enemy side
+        num_food = len(food_offense)
+        score -= 5 * num_food
+        food_dists = [self.getMazeDistance(myPos, food) for food in food_offense]
+        # go to closet food
+        if food_dists:
+            score += (100 / (min(food_dists) + 1))
+        if min(food_dists) == 0:
+            score += 25
+        
+        # ghost behavior:
+        if successorState.isPacman(): # only big worry about enemy ghost positions if we are a pacman
+            for ghost in ghosts:
+                ghost_dist = self.getMazeDistance(myPos, ghost.getPosition())
+                
+                # eat scared ghosts when possible
+                if ghost.isScared():
+                    if ghost_dist == 0:
+                        score += 300
+                    if ghost_dist < ghost.getScaredTimer():
+                        score += 200 / (ghost_dist + 1)
+                # run away from brave ghosts
+                else:
+                    if ghost_dist == 0:
+                        score -= 9000
+                    # if ghost_dist <= 1:
+                    #     score -= 250
+
+                    if ghost_dist <= 1:
+                        score -= 7000
+
+        else: #if we are a ghost heading to their side
+            for ghost in ghosts:
+                ghost_dist = self.getMazeDistance(myPos, ghost.getPosition())
+                score -= (25/(ghost_dist + 1))
+
+        
+        #print(score)
+        return score
+
+    def defense(self, gameState, action, score):
+        # important states
+        successor = gameState.generateSuccessor(self.index, action)
+        successorState = successor.getAgentState(self.index)
+
+
+        myPos = successorState.getPosition()
         food_defense = self.getFoodYouAreDefending(gameState).asList()
+
         enemies = [gameState.getAgentState(i) for i in self.getOpponents(gameState)]
         invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
+        ghosts = [a for a in enemies if not a.isPacman() and a.getPosition() is not None]
+
+        max_time = 0
+        min_ghost_dist = 10000
+        for ghost in ghosts:
+            max_time = max(max_time, ghost.getScaredTimer())
+            min_ghost_dist = min(min_ghost_dist, self.getMazeDistance(myPos, ghost.getPosition()))
+
+        if max_time > 5 or (min_ghost_dist > 12 and len(invaders) == 0):
+            return(self.offense(gameState, action, score))
+        elif min_ghost_dist == 1: #deadlocked with enemy ghost
+            score -= 10
+        elif min_ghost_dist == 2: #reward to undeadlock
+            score += 5
         
         # make sure that the defense stays as a ghost rather than a pacman
         # deafult position in the middle of the screen
         if not successorState.isPacman():
-            score += 10000
+            score += 100
         # want to have more food on our side
         # and don't want to have invaders
-        score += 100 * len(food_defense)
-        score -= 100 * len(invaders)
+        score += 1 * len(food_defense)
+        score -= 0.8 * len(invaders)
         # if we have invaders, eat them
         if len(invaders) > 0:
             dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
             if min(dists) == 0:
-                score += 5000
+                score += 75
             elif min(dists) <= 3:
-                score += 3000
-            score += 1000 / (min(dists) + 1)
+                score += (100 / min(dists) + 1)
+            score += 10 / (min(dists) + 1)
         # if we have no invaders, stay close to the enemy
         else:
             if not successorState.isPacman():
                 dists = [self.getMazeDistance(myPos, a.getPosition()) for a in enemies]
-                score += 1000 / (min(dists) + 1)
+                score += 10 / (min(dists) + 1)
+
+        #print(score)
         return score
 
 
@@ -133,7 +202,7 @@ class DummyOffenseAgent(CaptureAgent):
                 score -= 100
             rev = Directions.REVERSE[gameState.getAgentState(self.index).getDirection()]
             if action == rev:
-                score -= 2
+                score -= 10
 
             # Update the best action
             if score > best_score:
@@ -149,32 +218,51 @@ class DummyOffenseAgent(CaptureAgent):
         
         myPos = successorState.getPosition()
         food_offense = self.getFood(gameState).asList()
-        ghosts = [a for a in gameState.getAgentStates() if not a.isPacman()]
+
+        enemies = [gameState.getAgentState(i) for i in self.getOpponents(gameState)]
+        ghosts = [a for a in enemies if not a.isPacman() and a.getPosition() is not None]
+
+        if not successorState.isPacman():
+            score -= 5
         
         # want to have less food on the enemy side
         num_food = len(food_offense)
-        score -= 5 * num_food
+        score -= 1 * num_food
         food_dists = [self.getMazeDistance(myPos, food) for food in food_offense]
         # go to closet food
         if food_dists:
-            score += 100 / (min(food_dists) + 1)
+            score += (20 / (min(food_dists) + 1))
+        if min(food_dists) == 0:
+            score += 25
         
         # ghost behavior:
-        for ghost in ghosts:
-            ghost_dist = self.getMazeDistance(myPos, ghost.getPosition())
-            # eat scared ghosts when possible
-            if ghost.isScared():
-                if ghost_dist == 0:
-                    score += 200
-                if ghost_dist < ghost.getScaredTimer():
-                    score += 1 / (ghost_dist + 1)
-            # run away from brave ghosts
-            else:
-                if ghost_dist == 0:
-                    score -= 9000
-                if ghost_dist <= 1:
-                    score -= 7000
+        if successorState.isPacman(): # only big worry about enemy ghost positions if we are a pacman
+            for ghost in ghosts:
+                ghost_dist = self.getMazeDistance(myPos, ghost.getPosition())
+                
+                # eat scared ghosts when possible
+                if ghost.isScared():
+                    if ghost_dist == 0:
+                        score += 100
+                    if ghost_dist < ghost.getScaredTimer():
+                        score += 25 / (ghost_dist + 1)
+                # run away from brave ghosts
+                else:
+                    if ghost_dist == 0:
+                        score -= 2000
+                    # if ghost_dist <= 1:
+                    #     score -= 250
+
+                    if ghost_dist <= 1:
+                        score -= 1000
+
+        else: #if we are a ghost heading to their side
+            for ghost in ghosts:
+                ghost_dist = self.getMazeDistance(myPos, ghost.getPosition())
+                score -= (8/(ghost_dist + 2))
+
         
+        print(score)
         return score
 
 # --- our previous iteration of the code
