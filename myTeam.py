@@ -1,9 +1,10 @@
-from pacai.agents.capture.reflex import ReflexCaptureAgent
+from pacai.agents.capture.capture import CaptureAgent
 from pacai.core.directions import Directions
+from pacai.core.actions import Actions
 
 def createTeam(firstIndex, secondIndex, isRed,
-        first = '',
-        second = ''):
+        first = 'pacai.student.myTeam.DummyOffenseAgent',
+        second = 'pacai.student.myTeam.DummyDefenseAgent'):
     """
     This function should return a list of two agents that will form the capture team,
     initialized using firstIndex and secondIndex as their agent indexed.
@@ -11,13 +12,16 @@ def createTeam(firstIndex, secondIndex, isRed,
     and will be False if the blue team is being created.
     """
 
+    firstAgent = DummyOffenseAgent(firstIndex)
+    secondAgent = DummyDefenseAgent(secondIndex)
+
     return [
-        DummyOffenseAgent(firstIndex),
-       DummyDefenseAgent(secondIndex)
+        firstAgent,
+        secondAgent
     ]
 
 
-class DummyDefenseAgent(ReflexCaptureAgent):
+class DummyDefenseAgent(CaptureAgent):
     """
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
@@ -42,14 +46,23 @@ class DummyDefenseAgent(ReflexCaptureAgent):
         actions = gameState.getLegalActions(self.index)
         best_action = None
         best_score = float("-inf")
+        x, y = gameState.getAgentPosition(self.index)
 
         for action in actions:
             score = 0
             score = self.defense(gameState, action, score)
+
+            dx, dy = Actions.directionToVector(action)
+            nextX, nextY = int(x + dx), int(y + dy)
+            walls = gameState.getWalls()
+
+            # Avoid walls
+            if walls[nextX][nextY]:
+                score -= 99999
          
             # Avoid stopping or reversing
             if action == Directions.STOP:
-                score -= 100
+                score -= 99999
             rev = Directions.REVERSE[gameState.getAgentState(self.index).getDirection()]
             if action == rev:
                 score -= 2
@@ -74,7 +87,7 @@ class DummyDefenseAgent(ReflexCaptureAgent):
         # make sure that the defense stays as a ghost rather than a pacman
         # deafult position in the middle of the screen
         if not successorState.isPacman():
-            score += 100000
+            score += 10000
         # want to have more food on our side
         # and don't want to have invaders
         score += 100 * len(food_defense)
@@ -95,7 +108,7 @@ class DummyDefenseAgent(ReflexCaptureAgent):
         return score
 
 
-class DummyOffenseAgent(ReflexCaptureAgent):
+class DummyOffenseAgent(CaptureAgent):
     """
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
@@ -175,7 +188,7 @@ class DummyOffenseAgent(ReflexCaptureAgent):
         return score
 
 # --- our previous iteration of the code
-class DummyAgent(ReflexCaptureAgent):
+class DummyAgent(CaptureAgent):
     """
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
@@ -289,6 +302,8 @@ class DummyAgent(ReflexCaptureAgent):
                 enemies = [gameState.getAgentState(i) for i in self.getOpponents(gameState)]
                 invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
                 score -= 1000 * (len(invaders))
+                # Handling when a defender gets stuck to an attacker at the edge
+            
                 # want to be close to invaders to eat them
                 if (len(invaders) > 0):
                     dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
@@ -300,18 +315,6 @@ class DummyAgent(ReflexCaptureAgent):
                     score += 100 / (min(dists) + 1)
             
             # relvant to both states:
-            # don't want the agent to not move or go back and forth
-            if (action == Directions.STOP):
-                score -= 100
-            rev = Directions.REVERSE[gameState.getAgentState(self.index).getDirection()]
-            if (action == rev):
-                score -= 2
-            # update best action
-            if score >= best_score:
-                best_score = score
-                best_action = action
-
-        return best_action  # random.choice(actions)
             # don't want the agent to not move or go back and forth
             if (action == Directions.STOP):
                 score -= 100
