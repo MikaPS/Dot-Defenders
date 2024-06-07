@@ -1,10 +1,10 @@
-from pacai.agents.capture.capture import CaptureAgent
+from pacai.agents.capture.reflex import ReflexCaptureAgent
 from pacai.core.directions import Directions
 from pacai.core.actions import Actions
 
 def createTeam(firstIndex, secondIndex, isRed,
-        first = 'pacai.student.myTeam.DummyOffenseAgent',
-        second = 'pacai.student.myTeam.DummyDefenseAgent'):
+        first = '',
+        second = ''):
     """
     This function should return a list of two agents that will form the capture team,
     initialized using firstIndex and secondIndex as their agent indexed.
@@ -12,16 +12,13 @@ def createTeam(firstIndex, secondIndex, isRed,
     and will be False if the blue team is being created.
     """
 
-    firstAgent = DummyOffenseAgent(firstIndex)
-    secondAgent = DummyDefenseAgent(secondIndex)
-
     return [
-        firstAgent,
-        secondAgent
+        DummyOffenseAgent(firstIndex),
+        DummyDefenseAgent(secondIndex)
     ]
 
 
-class DummyDefenseAgent(CaptureAgent):
+class DummyDefenseAgent(ReflexCaptureAgent):
     """
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
@@ -108,7 +105,7 @@ class DummyDefenseAgent(CaptureAgent):
         return score
 
 
-class DummyOffenseAgent(CaptureAgent):
+class DummyOffenseAgent(ReflexCaptureAgent):
     """
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
@@ -188,7 +185,7 @@ class DummyOffenseAgent(CaptureAgent):
         return score
 
 # --- our previous iteration of the code
-class DummyAgent(CaptureAgent):
+class DummyAgent(ReflexCaptureAgent):
     """
     A Dummy agent to serve as an example of the necessary agent structure.
     You should look at `pacai.core.baselineTeam` for more details about how to create an agent.
