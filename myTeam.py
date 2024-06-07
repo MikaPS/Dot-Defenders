@@ -12,12 +12,12 @@ def createTeam(firstIndex, secondIndex, isRed,
     and will be False if the blue team is being created.
     """
 
-    firstAgent = DummyOffenseAgent
-    secondAgent = DummyDefenseAgent
+    firstAgent = DummyOffenseAgent(firstIndex)
+    secondAgent = DummyDefenseAgent(secondIndex)
 
     return [
-        firstAgent(firstIndex),
-        secondAgent(secondIndex),
+        firstAgent,
+        secondAgent
     ]
 
 
